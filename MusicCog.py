@@ -49,6 +49,9 @@ class MusicCog(commands.Cog):
         return
       youtube_url = nextSong
 
+    if(not is_supported(youtube_url)):
+      return
+
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     voice = ctx.voice_client
@@ -72,6 +75,15 @@ class MusicCog(commands.Cog):
         info = ydl.extract_info(youtube_url, download=False)
         URL = info['formats'][0]['url']
         self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
+  
+  async def is_supported(url):
+    extractors = youtube_dl.extractor.gen_extractors()
+    for e in extractors:
+      if e.suitable(url) and e.IE_NAME != 'generic':
+        return True
+    return False
+
+print (is_supported(url))
     
   @commands.command(pass_context=True)
   async def pause(self, ctx):
@@ -157,9 +169,9 @@ class MusicCog(commands.Cog):
 > To move the bot to another channel without changing song
 **.disconnect**
 > Disconnect bot from channel
-**.skip <youtube link>**
+**.skip**
 > Skip the current track
-**.clearQueue <youtube link>**
+**.clearQueue**
 > clear the current queue
 **.remove <queue number>**
 > remove the songs based on queue number. Note: do not remove the first one, it is the one that is currently playing
