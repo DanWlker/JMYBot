@@ -5,7 +5,6 @@ from discord import FFmpegPCMAudio
 from youtube_dl import YoutubeDL
 from discord.ext import commands
 
-voice = None
 
 client = commands.Bot(command_prefix="!")
 bot_token = os.environ['TOKEN']
@@ -23,7 +22,6 @@ async def play_youtube(ctx, youtube_url):
 
   channel = ctx.message.author.voice.channel
   if(youtube_url.startswith('https://www.youtube.com/watch?v=')):
-    global voice
     voice = await channel.connect()
     if not voice.is_playing():
       with YoutubeDL(YDL_OPTIONS) as ydl:
