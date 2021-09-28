@@ -3,7 +3,7 @@ import os
 from discord.ext import commands
 from MusicCog import MusicCog
 
-client = commands.Bot(command_prefix="!")
+client = commands.Bot(command_prefix=".")
 bot_token = os.environ['TOKEN']
 
 @client.event

@@ -1,6 +1,20 @@
 {
   "files": {
+    "MusicQueue.py": [
+      {
+        "id": "f07dd921-1993-4625-81d0-ce11c3a91698",
+        "line": 25,
+        "version": 453,
+        "index": 543
+      }
+    ],
     "musicCog.py": [
+      {
+        "id": "c6044e2b-2757-4d1b-83d4-8534063a207a",
+        "line": 50,
+        "version": 0,
+        "index": 1383
+      },
       {
         "id": "d7747bf5-38b8-406c-8bad-23c342a26393",
         "line": 84,

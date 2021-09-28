@@ -1,13 +1,16 @@
 import nacl
+import asyncio
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from youtube_dl import YoutubeDL
 from MusicQueue import MusicQueue
 
 class MusicCog(commands.Cog):
+
   def __init__(self, client):
     self.client = client
     self.queue = MusicQueue()
+    self.currentBotVoice = None
 
   def setup(client): 
     client.add_cog(MusicCog(client))
@@ -35,28 +38,54 @@ class MusicCog(commands.Cog):
     await ctx.voice_client.disconnect()
 
   @commands.command(pass_context=True)
-  async def play(self, ctx, youtube_url):
+  async def play(self, ctx, youtube_url=""):
     await self.join(ctx)
-    ctx.voice_client.stop()
+    #ctx.voice_client.stop()
+
+    if(youtube_url == ""):
+      nextSong = self.queue.getNextSong()
+      print(nextSong)
+      if(nextSong == ""):
+        return
+      youtube_url = nextSong
 
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     voice = ctx.voice_client
+    self.currentBotVoice = ctx.voice_client
 
     with YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(youtube_url, download=False)
         URL = info['formats'][0]['url']
-        voice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS))
+        voice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
 
+  def playNextSong(self):
+    self.queue.removeNextSong();
+    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
+    FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+    youtube_url = self.queue.getNextSong()
+
+    if(not youtube_url.startswith('https://www.youtube.com/watch?v=')):
+      return
+    
+    with YoutubeDL(YDL_OPTIONS) as ydl:
+        info = ydl.extract_info(youtube_url, download=False)
+        URL = info['formats'][0]['url']
+        self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
+    
   @commands.command(pass_context=True)
   async def pause(self, ctx):
+    self.currentBotVoice = ctx.voice_client
     await ctx.send("Music has been paused")
     await ctx.voice_client.pause()
+    
   
   @commands.command(pass_context=True)
   async def resume(self, ctx):
+    self.currentBotVoice = ctx.voice_client
     await ctx.send("Music has been resumed")
     await ctx.voice_client.resume()
+    
 
   @commands.command(pass_context=True)
   async def move(self, ctx):
@@ -64,6 +93,8 @@ class MusicCog(commands.Cog):
       await ctx.send("Please enter a voice channel before using bot")
       return
     await ctx.voice_client.move_to(ctx.author.voice.channel)
+    self.currentBotVoice = ctx.author.voice.channel
+    
 
   @commands.command(pass_context=True)
   async def queue(self, ctx, youtube_url):
@@ -98,7 +129,11 @@ class MusicCog(commands.Cog):
 
   @commands.command(pass_context=True)
   async def clearQueue(self, ctx):
-    await self.queue.clearQueue
+    await self.queue.clearQueue()
+
+  @commands.command(pass_context=True)
+  async def skip(self, ctx): 
+    await self.play(ctx)
 
   @commands.command(pass_context=True)
   async def musichelp(self, ctx):
