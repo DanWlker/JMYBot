@@ -6,6 +6,7 @@ from youtube_dl import YoutubeDL
 class musicCog(commands.Cog):
   def __init__(self, client):
     self.client = client
+    self.queue = []
 
   def setup(client): 
     client.add_cog(musicCog(client))
