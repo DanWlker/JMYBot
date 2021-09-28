@@ -49,7 +49,7 @@ class MusicCog(commands.Cog):
         return
       youtube_url = nextSong
 
-    if(not await self.is_supported(youtube_url)):
+    if(not self.is_supported(youtube_url)):
       return
 
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
@@ -68,7 +68,7 @@ class MusicCog(commands.Cog):
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     youtube_url = self.queue.getNextSong()
 
-    if(not youtube_url.startswith('https://www.youtube.com/watch?v=')):
+    if(not self.is_supported(youtube_url)):
       return
     
     with YoutubeDL(YDL_OPTIONS) as ydl:
@@ -76,7 +76,7 @@ class MusicCog(commands.Cog):
         URL = info['formats'][0]['url']
         self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
   
-  async def is_supported(self, url):
+  def is_supported(self, url):
     extractors = youtube_dl.extractor.gen_extractors()
     for e in extractors:
       if e.suitable(url) and e.IE_NAME != 'generic':
