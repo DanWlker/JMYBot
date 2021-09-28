@@ -109,9 +109,11 @@ class MusicCog(commands.Cog):
       await ctx.send("No music is queued")
       return
     str = ""
+    strExtra = "**(Now playing)**"
     queueNames = list(self.queue.urls.keys())
     for i in range(len(queueNames)):
-      str += f"{i+1}. {queueNames[i]}\n"
+      str += f"{i+1}. {queueNames[i]} {strExtra}\n"
+      strExtra = ""
 
     await ctx.send(str)
 
@@ -119,11 +121,17 @@ class MusicCog(commands.Cog):
   async def remove(self, ctx, number):
     if(not number.isdigit()):
       await ctx.send("Please enter the index of the song you want to remove")
+      return
 
     actualIndex = int(number)-1
 
+    if(actualIndex == 0):
+      await ctx.send("Cannot remove currently playing song")
+      return
+
     if(actualIndex >= len(self.queue.urls) or actualIndex < 0):
       await ctx.send("There is not that much songs queued")
+      return
 
     await self.queue.remove(actualIndex)
 
@@ -139,15 +147,25 @@ class MusicCog(commands.Cog):
   async def musichelp(self, ctx):
     str = \
     """
-**!play <youtube link>**
+**.play <youtube link>**
 > Play song from youtube link
-**!pause**
+**.pause**
 > Pause playback of current song
-**!resume**
+**.resume**
 > Resume playback of current song
-**!move**
+**.move**
 > To move the bot to another channel without changing song
-**!disconnect**
+**.disconnect**
 > Disconnect bot from channel
+**.skip <youtube link>**
+> Skip the current track
+**.clearQueue <youtube link>**
+> clear the current queue
+**.remove <queue number>**
+> remove the songs based on queue number. Note: do not remove the first one, it is the one that is currently playing
+**.showQueue**
+> Show all songs being queued to play
+**.queue <youtube link>**
+> Queue this song to be played next
     """
     await ctx.send(str)
