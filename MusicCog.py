@@ -2,14 +2,15 @@ import nacl
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from youtube_dl import YoutubeDL
+from MusicQueue import MusicQueue
 
-class musicCog(commands.Cog):
+class MusicCog(commands.Cog):
   def __init__(self, client):
     self.client = client
-    self.queue = []
+    self.queue = MusicQueue()
 
   def setup(client): 
-    client.add_cog(musicCog(client))
+    client.add_cog(MusicCog(client))
 
   async def join(self, ctx):
     if(ctx.author.voice is None): #if author is not in channel
@@ -63,6 +64,41 @@ class musicCog(commands.Cog):
       await ctx.send("Please enter a voice channel before using bot")
       return
     await ctx.voice_client.move_to(ctx.author.voice.channel)
+
+  @commands.command(pass_context=True)
+  async def queue(self, ctx, youtube_url):
+    if(not youtube_url.startswith('https://www.youtube.com/watch?v=')):
+      await ctx.send("Link not supported, please use a youtube link")
+    
+    await self.queue.addSong(youtube_url)
+
+  @commands.command(pass_context=True)
+  async def showQueue(self, ctx):
+    if(len(self.queue.urls) == 0):
+      await ctx.send("No music is queued")
+      return
+    str = ""
+    queueNames = list(self.queue.urls.keys())
+    for i in range(len(queueNames)):
+      str += f"{i+1}. {queueNames[i]}\n"
+
+    await ctx.send(str)
+
+  @commands.command(pass_context=True)
+  async def remove(self, ctx, number):
+    if(not number.isdigit()):
+      await ctx.send("Please enter the index of the song you want to remove")
+
+    actualIndex = int(number)-1
+
+    if(actualIndex >= len(self.queue.urls) or actualIndex < 0):
+      await ctx.send("There is not that much songs queued")
+
+    await self.queue.remove(actualIndex)
+
+  @commands.command(pass_context=True)
+  async def clearQueue(self, ctx):
+    await self.queue.clearQueue
 
   @commands.command(pass_context=True)
   async def musichelp(self, ctx):
