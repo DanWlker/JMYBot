@@ -1,5 +1,5 @@
 import nacl
-import asyncio
+import youtube_dl
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 from youtube_dl import YoutubeDL
@@ -49,7 +49,7 @@ class MusicCog(commands.Cog):
         return
       youtube_url = nextSong
 
-    if(not is_supported(youtube_url)):
+    if(not await self.is_supported(youtube_url)):
       return
 
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
@@ -76,14 +76,12 @@ class MusicCog(commands.Cog):
         URL = info['formats'][0]['url']
         self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
   
-  async def is_supported(url):
+  async def is_supported(self, url):
     extractors = youtube_dl.extractor.gen_extractors()
     for e in extractors:
       if e.suitable(url) and e.IE_NAME != 'generic':
         return True
     return False
-
-print (is_supported(url))
     
   @commands.command(pass_context=True)
   async def pause(self, ctx):
@@ -91,13 +89,11 @@ print (is_supported(url))
     await ctx.send("Music has been paused")
     await ctx.voice_client.pause()
     
-  
   @commands.command(pass_context=True)
   async def resume(self, ctx):
     self.currentBotVoice = ctx.voice_client
     await ctx.send("Music has been resumed")
     await ctx.voice_client.resume()
-    
 
   @commands.command(pass_context=True)
   async def move(self, ctx):
