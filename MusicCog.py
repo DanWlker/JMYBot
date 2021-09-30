@@ -10,7 +10,6 @@ class MusicCog(commands.Cog):
   def __init__(self, client):
     self.client = client
     self.songList = MusicQueue()
-    self.currentBotVoice = None
     self.repeatMode = 0
 
   def setup(client): 
@@ -40,12 +39,14 @@ class MusicCog(commands.Cog):
   @commands.command(pass_context=True)
   async def disconnect(self, ctx):
     await ctx.voice_client.disconnect()
-    self.currentBotVoice = None #Garbage cleanup, not sure if will have bug or not
 
   @commands.command(pass_context=True)
   async def play(self, ctx, youtube_url=""):
-
     if (not await self.join(ctx)):#if the bot cannot join or is not in a channel
+      return
+
+    if(ctx.voice_client.is_playing()):
+      await ctx.send("Sorry, music is being played, please add to queue")
       return
 
     #There are 3 possible inputs: "", youtube url, jargon
@@ -58,27 +59,26 @@ class MusicCog(commands.Cog):
         return #end if there are no queued songs
     else:
       if(self.is_supported(youtube_url)): #if it is not blank, check if it is jargon
-        self.songList.addToStart(youtube_url) #add to the first in the queue if it is a valid url
+        self.songList.insertToPos(youtube_url, 0) #add to the first in the queue if it is a valid url
       else:
         return #return if jargon
 
-    self.currentBotVoice = ctx.voice_client #save the current context to be used when replaying
-    self.startSong() #start the actual song playback
+    self.startSong(ctx) #start the actual song playback
 
-  def playNextSong(self): 
+  def playNextSong(self, ctx): 
     thisSong = self.songList.getNextSong()
     self.songList.removeNextSong();
 
     if(self.repeatMode == 1):
-      self.songList.addSong(thisSong)
+      self.songList.appendSong(thisSong)
 
     if(self.repeatMode == 2):
-      self.songList.addToStart(thisSong)
+      self.songList.insertToPos(thisSong, 0)
 
     if(self.songList.getNextSong() != ""): #check if next song is available
-      self.startSong();
+      self.startSong(ctx);
 
-  def startSong(self):
+  def startSong(self, ctx):
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     youtube_url = self.songList.getNextSong()
@@ -86,7 +86,7 @@ class MusicCog(commands.Cog):
     with YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(youtube_url, download=False)
         URL = info['formats'][0]['url']
-        self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
+        ctx.voice_client.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong(ctx))
   
   #check if youtube_dl can open the song
   def is_supported(self, url): 
@@ -98,13 +98,11 @@ class MusicCog(commands.Cog):
     
   @commands.command(pass_context=True)
   async def pause(self, ctx):
-    self.currentBotVoice = ctx.voice_client
     await ctx.send("Music has been paused")
     await ctx.voice_client.pause()
     
   @commands.command(pass_context=True)
   async def resume(self, ctx):
-    self.currentBotVoice = ctx.voice_client
     await ctx.send("Music has been resumed")
     await ctx.voice_client.resume()
 
@@ -115,15 +113,14 @@ class MusicCog(commands.Cog):
       await ctx.send("Please enter a voice channel before using bot")
       return
     await ctx.voice_client.move_to(ctx.author.voice.channel)
-    self.currentBotVoice = ctx.author.voice.channel
     
   @commands.command(pass_context=True)
   async def queue(self, ctx, youtube_url):
     if(not self.is_supported(youtube_url)):
       await ctx.send("Link not supported, please use a youtube link")
     
-    self.songList.addSong(youtube_url)
-    await ctx.send("Song queued")
+    self.songList.appendSong(youtube_url)
+    await ctx.send("Song added to que")
 
   @commands.command(pass_context=True)
   async def showQueue(self, ctx):
@@ -190,6 +187,14 @@ class MusicCog(commands.Cog):
     await ctx.send("Repeat function is off")
 
   @commands.command(pass_context=True)
+  async def queueNext(self, ctx, youtube_url):
+    if(not self.is_supported(youtube_url)):
+      await ctx.send("Link not supported, please use a youtube link")
+    
+    self.songList.insertToPos(youtube_url, 1)
+    await ctx.send("Song queued to play next")
+
+  @commands.command(pass_context=True)
   async def musichelp(self, ctx):
     str = \
     """
@@ -211,6 +216,8 @@ class MusicCog(commands.Cog):
 > remove the songs based on queue number. Note: do not remove the first one, it is the one that is currently playing
 **.showQueue**
 > Show all songs being queued to play
+**.queueNext <youtube link>**
+> Queue's the song to be played next
 **.queue <youtube link>**
 > Queue this song to be played next
 **.repeatQueue**

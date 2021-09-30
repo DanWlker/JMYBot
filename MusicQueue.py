@@ -17,17 +17,22 @@ class MusicQueue:
   def clearQueue(self):
     self.urls = {}
 
-  def addSong(self, url):
+  def appendSong(self, url):
       self.urls[self.getSongTitle(url)] = url
+  
+  def insertToPos(self, url, pos):
+    new_entry = {self.getSongTitle(url): url}
+    new_list = list(self.urls.items())[:pos] + list(new_entry.items()) + list(self.urls.items())[pos:]
+    new_dict = {}
+
+    for entry in new_list:
+        new_dict[entry[0]] = entry[1]
+    
+    self.urls = new_dict
   
   def remove(self, index):
     del self.urls[next(islice(self.urls, index, None))]
     print(self.urls)
-
-  def addToStart(self, url):
-    new_dictionary = {self.getSongTitle(url): url}
-    new_dictionary.update(self.urls)
-    self.urls = new_dictionary
 
   def getSongTitle(self, url):
     with YoutubeDL({}) as ydl:
