@@ -18,11 +18,18 @@ class MusicQueue:
     self.urls = {}
 
   async def addSong(self, url):
-    with YoutubeDL({}) as ydl:
-      info = ydl.extract_info(url, download=False)
-      print(info['title'])
-      self.urls[info['title']] = url
+      self.urls[await self.getSongTitle(url)] = url
 
   async def remove(self, index):
     del self.urls[next(islice(self.urls, index, None))]
     print(self.urls)
+
+  async def addToStart(self, url):
+    new_dictionary = {await self.getSongTitle(url): url}
+    new_dictionary.update(self.urls)
+    self.urls = new_dictionary
+
+  async def getSongTitle(self, url):
+    with YoutubeDL({}) as ydl:
+      info = ydl.extract_info(url, download=False)
+      return info['title']
