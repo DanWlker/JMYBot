@@ -11,6 +11,7 @@ class MusicCog(commands.Cog):
     self.client = client
     self.songList = MusicQueue()
     self.currentBotVoice = None
+    self.repeatMode = 0
 
   def setup(client): 
     client.add_cog(MusicCog(client))
@@ -59,7 +60,7 @@ class MusicCog(commands.Cog):
         return #end if there are no queued songs
     else:
       if(self.is_supported(youtube_url)): #if it is not blank, check if it is jargon
-        await self.songList.addToStart(youtube_url) #add to the first in the queue if it is a valid url
+        self.songList.addToStart(youtube_url) #add to the first in the queue if it is a valid url
       else:
         return #return if jargon
 
@@ -67,7 +68,15 @@ class MusicCog(commands.Cog):
     self.startSong() #start the actual song playback
 
   def playNextSong(self): 
+    thisSong = self.songList.getNextSong()
     self.songList.removeNextSong();
+
+    if(self.repeatMode == 1):
+      self.songList.addSong(thisSong)
+
+    if(self.repeatMode == 2):
+      self.songList.addToStart(thisSong)
+
     if(self.songList.getNextSong() != ""): #check if next song is available
       self.startSong();
 
@@ -115,7 +124,7 @@ class MusicCog(commands.Cog):
     if(not self.is_supported(youtube_url)):
       await ctx.send("Link not supported, please use a youtube link")
     
-    await self.songList.addSong(youtube_url)
+    self.songList.addSong(youtube_url)
     await ctx.send("Song queued")
 
   @commands.command(pass_context=True)
@@ -148,24 +157,39 @@ class MusicCog(commands.Cog):
       await ctx.send("Please enter a valid number")
       return
 
-    await self.songList.remove(actualIndex)
+    self.songList.remove(actualIndex)
     await ctx.send(f"Song in position {number} is removed")
 
   @commands.command(pass_context=True)
   async def clearQueue(self, ctx):
-    await self.songList.clearQueue()
+    self.songList.clearQueue()
 
   @commands.command(pass_context=True)
   async def skip(self, ctx): 
     await self.play(ctx)
 
   @commands.command(pass_context=True)
-  async def repeatQueue(ctx):
-    return
+  async def repeatQueue(self, ctx):
+    if(self.repeatMode == 1):
+      self.repeatMode = 0 #reset to no repeat
+      await ctx.send("Repeat function is off")
+    else:
+      self.repeatMode = 1
+      await ctx.send("Repeat song queue is on")
 
   @commands.command(pass_context=True)
-  async def repeatCurrentSong(ctx):
-    return
+  async def repeatSong(self, ctx):
+    if(self.repeatMode == 2):
+      self.repeatMode = 0 #reset to no repeat
+      await ctx.send("Repeat function is off")
+    else:
+      self.repeatMode = 2
+      await ctx.send("Repeat current song is on")
+  
+  @commands.command(pass_context=True)
+  async def repeatOff(self, ctx):
+    self.repeatMode = 0
+    await ctx.send("Repeat function is off")
 
   @commands.command(pass_context=True)
   async def musichelp(self, ctx):
@@ -191,5 +215,11 @@ class MusicCog(commands.Cog):
 > Show all songs being queued to play
 **.queue <youtube link>**
 > Queue this song to be played next
+**.repeatQueue**
+> Repeat the current song queue
+**.repeatSong**
+> Repeat the current song that is being played
+**.repeatOff**
+> Turn off the repeat function
     """
     await ctx.send(str)
