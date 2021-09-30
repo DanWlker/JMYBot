@@ -9,7 +9,7 @@ class MusicCog(commands.Cog):
 
   def __init__(self, client):
     self.client = client
-    self.queue = MusicQueue()
+    self.songList = MusicQueue()
     self.currentBotVoice = None
 
   def setup(client): 
@@ -18,20 +18,22 @@ class MusicCog(commands.Cog):
   async def join(self, ctx):
     if(ctx.author.voice is None): #if author is not in channel
       await ctx.send("Please enter a voice channel before using bot")
-      return
+      return False
 
     voiceChannel = ctx.author.voice.channel
 
     if(ctx.voice_client is None):
       await voiceChannel.connect()
-      return
+      return True
 
-    if(ctx.voice_client != voiceChannel): #no need to move if in same voice channel
+    if(ctx.voice_client.channel != voiceChannel): #move if not in same voice channel
       await self.disconnect(ctx)
       await self.join(ctx)
-      return
+      print("Not in same channel")
+      return True
 
-    print("same channel")
+    print("Same channel")
+    return True
 
   @commands.command(pass_context=True)
   async def disconnect(self, ctx):
@@ -39,8 +41,10 @@ class MusicCog(commands.Cog):
 
   @commands.command(pass_context=True)
   async def play(self, ctx, youtube_url=""):
-    await self.join(ctx)
-    #ctx.voice_client.stop()
+    if (not await self.join(ctx)):#if the bot cannot join or is not in a channel
+      return
+
+    ctx.voice_client.stop()
 
     #3 possible inputs: "", youtube url, jargon
     #if "" check if there is queued songs, if yes then play it
@@ -48,15 +52,15 @@ class MusicCog(commands.Cog):
     #if jargon return
 
     if(youtube_url == ""): #if the url is blank
-      if(self.queue.getNextSong() == ""): #check for the next song
+      if(self.songList.getNextSong() == ""): #check for the next song
         return #end if there are no queued songs
     else:
       if(self.is_supported(youtube_url)): #if it is not blank, check if it is jargon
-        await self.queue.addToStart(youtube_url) #add to the first in the queue if it is a valid url
+        await self.songList.addToStart(youtube_url) #add to the first in the queue if it is a valid url
       else:
         return #return if jargon
     
-    youtube_url = self.queue.getNextSong() #fetch the song to be played
+    youtube_url = self.songList.getNextSong() #fetch the song to be played
 
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -69,10 +73,11 @@ class MusicCog(commands.Cog):
         voice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
 
   def playNextSong(self):
-    self.queue.removeNextSong();
+    self.songList.removeNextSong();
+
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    youtube_url = self.queue.getNextSong()
+    youtube_url = self.songList.getNextSong()
 
     if(not self.is_supported(youtube_url)):
       return
@@ -111,19 +116,19 @@ class MusicCog(commands.Cog):
     
   @commands.command(pass_context=True)
   async def queue(self, ctx, youtube_url):
-    if(not youtube_url.startswith('https://www.youtube.com/watch?v=')):
+    if(not self.is_supported(youtube_url)):
       await ctx.send("Link not supported, please use a youtube link")
     
-    await self.queue.addSong(youtube_url)
+    await self.songList.addSong(youtube_url)
 
   @commands.command(pass_context=True)
   async def showQueue(self, ctx):
-    if(len(self.queue.urls) == 0):
+    if(len(self.songList.urls) == 0):
       await ctx.send("No music is queued")
       return
     str = ""
     strExtra = "**(Now playing)**"
-    queueNames = list(self.queue.urls.keys())
+    queueNames = list(self.songList.urls.keys())
     for i in range(len(queueNames)):
       str += f"{i+1}. {queueNames[i]} {strExtra}\n"
       strExtra = ""
@@ -142,15 +147,15 @@ class MusicCog(commands.Cog):
       await ctx.send("Cannot remove currently playing song")
       return
 
-    if(actualIndex >= len(self.queue.urls) or actualIndex < 0):
+    if(actualIndex >= len(self.songList.urls) or actualIndex < 0):
       await ctx.send("There is not that much songs queued")
       return
 
-    await self.queue.remove(actualIndex)
+    await self.songList.remove(actualIndex)
 
   @commands.command(pass_context=True)
   async def clearQueue(self, ctx):
-    await self.queue.clearQueue()
+    await self.songList.clearQueue()
 
   @commands.command(pass_context=True)
   async def skip(self, ctx): 
