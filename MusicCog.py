@@ -42,15 +42,21 @@ class MusicCog(commands.Cog):
     await self.join(ctx)
     #ctx.voice_client.stop()
 
-    if(youtube_url == ""):
-      nextSong = self.queue.getNextSong()
-      print(nextSong)
-      if(nextSong == ""):
-        return
-      youtube_url = nextSong
+    #3 possible inputs: "", youtube url, jargon
+    #if "" check if there is queued songs, if yes then play it
+    #if youtube_url add to queue and play it
+    #if jargon return
 
-    if(not self.is_supported(youtube_url)):
-      return
+    if(youtube_url == ""): #if the url is blank
+      if(self.queue.getNextSong() == ""): #check for the next song
+        return #end if there are no queued songs
+    else:
+      if(self.is_supported(youtube_url)): #if it is not blank, check if it is jargon
+        await self.queue.addToStart(youtube_url) #add to the first in the queue if it is a valid url
+      else:
+        return #return if jargon
+    
+    youtube_url = self.queue.getNextSong() #fetch the song to be played
 
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -103,7 +109,6 @@ class MusicCog(commands.Cog):
     await ctx.voice_client.move_to(ctx.author.voice.channel)
     self.currentBotVoice = ctx.author.voice.channel
     
-
   @commands.command(pass_context=True)
   async def queue(self, ctx, youtube_url):
     if(not youtube_url.startswith('https://www.youtube.com/watch?v=')):
