@@ -59,28 +59,18 @@ class MusicCog(commands.Cog):
         await self.songList.addToStart(youtube_url) #add to the first in the queue if it is a valid url
       else:
         return #return if jargon
-    
-    youtube_url = self.songList.getNextSong() #fetch the song to be played
 
-    YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
-    FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    voice = ctx.voice_client
     self.currentBotVoice = ctx.voice_client
-
-    with YoutubeDL(YDL_OPTIONS) as ydl:
-        info = ydl.extract_info(youtube_url, download=False)
-        URL = info['formats'][0]['url']
-        voice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
+    self.startSong()
 
   def playNextSong(self):
     self.songList.removeNextSong();
+    self.startSong();
 
+  def startSong(self):
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
     FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     youtube_url = self.songList.getNextSong()
-
-    if(not self.is_supported(youtube_url)):
-      return
     
     with YoutubeDL(YDL_OPTIONS) as ydl:
         info = ydl.extract_info(youtube_url, download=False)
