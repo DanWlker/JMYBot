@@ -17,6 +17,7 @@ class MusicCog(commands.Cog):
 
   #helps the bot to determine if it needs to join a new room, switch to a new room, or remain in current room
   #returns false if not in a channel
+  #TODO: May need to refactor this into two separate classes, one for chiecking one for actual join room
   async def join(self, ctx):
     if(ctx.author.voice is None): #if author is not in channel
       await ctx.send("Please enter a voice channel before using bot")
@@ -38,6 +39,7 @@ class MusicCog(commands.Cog):
   @commands.command(pass_context=True)
   async def disconnect(self, ctx):
     await ctx.voice_client.disconnect()
+    self.currentBotVoice = None #Garbage cleanup, not sure if will have bug or not
 
   @commands.command(pass_context=True)
   async def play(self, ctx, youtube_url=""):
