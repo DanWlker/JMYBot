@@ -48,8 +48,6 @@ class MusicCog(commands.Cog):
     if (not await self.join(ctx)):#if the bot cannot join or is not in a channel
       return
 
-    ctx.voice_client.stop() #stop the current playing song
-
     #There are 3 possible inputs: "", youtube url, jargon
     #if "" check if there is queued songs, if yes then play it
     #if youtube_url add to queue and play it
@@ -166,7 +164,7 @@ class MusicCog(commands.Cog):
 
   @commands.command(pass_context=True)
   async def skip(self, ctx): 
-    await self.play(ctx)
+    ctx.voice_client.stop()
 
   @commands.command(pass_context=True)
   async def repeatQueue(self, ctx):
