@@ -160,6 +160,14 @@ class MusicCog(commands.Cog):
     await self.play(ctx)
 
   @commands.command(pass_context=True)
+  async def repeatQueue(ctx):
+    return
+
+  @commands.command(pass_context=True)
+  async def repeatCurrentSong(ctx):
+    return
+
+  @commands.command(pass_context=True)
   async def musichelp(self, ctx):
     str = \
     """
