@@ -15,21 +15,21 @@ class MusicCog(commands.Cog):
   def setup(client): 
     client.add_cog(MusicCog(client))
 
+  #helps the bot to determine if it needs to join a new room, switch to a new room, or remain in current room
+  #returns false if not in a channel
   async def join(self, ctx):
     if(ctx.author.voice is None): #if author is not in channel
       await ctx.send("Please enter a voice channel before using bot")
       return False
 
-    voiceChannel = ctx.author.voice.channel
-
     if(ctx.voice_client is None):
-      await voiceChannel.connect()
+      await ctx.author.voice.channel.connect()
       return True
 
-    if(ctx.voice_client.channel != voiceChannel): #move if not in same voice channel
+    if(ctx.voice_client.channel != ctx.author.voice.channel): #move if not in same voice channel
+      print("Not in same channel, switching")
       await self.disconnect(ctx)
       await self.join(ctx)
-      print("Not in same channel")
       return True
 
     print("Same channel")
@@ -41,12 +41,13 @@ class MusicCog(commands.Cog):
 
   @commands.command(pass_context=True)
   async def play(self, ctx, youtube_url=""):
+
     if (not await self.join(ctx)):#if the bot cannot join or is not in a channel
       return
 
-    ctx.voice_client.stop()
+    ctx.voice_client.stop() #stop the current playing song
 
-    #3 possible inputs: "", youtube url, jargon
+    #There are 3 possible inputs: "", youtube url, jargon
     #if "" check if there is queued songs, if yes then play it
     #if youtube_url add to queue and play it
     #if jargon return
@@ -60,12 +61,13 @@ class MusicCog(commands.Cog):
       else:
         return #return if jargon
 
-    self.currentBotVoice = ctx.voice_client
-    self.startSong()
+    self.currentBotVoice = ctx.voice_client #save the current context to be used when replaying
+    self.startSong() #start the actual song playback
 
-  def playNextSong(self):
+  def playNextSong(self): 
     self.songList.removeNextSong();
-    self.startSong();
+    if(self.songList.getNextSong() != ""): #check if next song is available
+      self.startSong();
 
   def startSong(self):
     YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': True,}
@@ -77,7 +79,8 @@ class MusicCog(commands.Cog):
         URL = info['formats'][0]['url']
         self.currentBotVoice.play(FFmpegPCMAudio(URL, **FFMPEG_OPTIONS), after= lambda e: self.playNextSong())
   
-  def is_supported(self, url):
+  #check if youtube_dl can open the song
+  def is_supported(self, url): 
     extractors = youtube_dl.extractor.gen_extractors()
     for e in extractors:
       if e.suitable(url) and e.IE_NAME != 'generic':
@@ -96,6 +99,7 @@ class MusicCog(commands.Cog):
     await ctx.send("Music has been resumed")
     await ctx.voice_client.resume()
 
+  #difference between this and join is that this does not interrupt the song play
   @commands.command(pass_context=True)
   async def move(self, ctx):
     if(ctx.author.voice is None): #if author is not in channel
@@ -110,6 +114,7 @@ class MusicCog(commands.Cog):
       await ctx.send("Link not supported, please use a youtube link")
     
     await self.songList.addSong(youtube_url)
+    await ctx.send("Song queued")
 
   @commands.command(pass_context=True)
   async def showQueue(self, ctx):
@@ -138,10 +143,11 @@ class MusicCog(commands.Cog):
       return
 
     if(actualIndex >= len(self.songList.urls) or actualIndex < 0):
-      await ctx.send("There is not that much songs queued")
+      await ctx.send("Please enter a valid number")
       return
 
     await self.songList.remove(actualIndex)
+    await ctx.send(f"Song in position {number} is removed")
 
   @commands.command(pass_context=True)
   async def clearQueue(self, ctx):
